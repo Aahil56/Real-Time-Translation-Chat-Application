@@ -1,5 +1,7 @@
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useThemeStore } from "../store/useThemeStore";
+import { toast } from "react-hot-toast";
 
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
@@ -15,15 +17,17 @@ const ChatContainer = () => {
     selectedUser,
     subscribeToMessages,
     unsubscribeFromMessages,
+    sendMessage,
+    translateMessage,
+    isTranslating,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
+  const [messageText, setMessageText] = useState("");
 
   useEffect(() => {
     getMessages(selectedUser._id);
-
     subscribeToMessages();
-
     return () => unsubscribeFromMessages();
   }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
@@ -32,6 +36,18 @@ const ChatContainer = () => {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  const handleTranslate = async (text) => {
+    try {
+      const result = await translateMessage(text, 'hi');
+      if (!result) {
+        toast.error('Translation failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Translation error in component:', error);
+      toast.error('Failed to translate message');
+    }
+  };
 
   if (isMessagesLoading) {
     return (
@@ -54,7 +70,7 @@ const ChatContainer = () => {
             className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
             ref={messageEndRef}
           >
-            <div className=" chat-image avatar">
+            <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
@@ -71,7 +87,7 @@ const ChatContainer = () => {
                 {formatMessageTime(message.createdAt)}
               </time>
             </div>
-            <div className="chat-bubble flex flex-col">
+            <div className="chat-bubble flex flex-col gap-2">
               {message.image && (
                 <img
                   src={message.image}
@@ -79,7 +95,23 @@ const ChatContainer = () => {
                   className="sm:max-w-[200px] rounded-md mb-2"
                 />
               )}
-              {message.text && <p>{message.text}</p>}
+              {message.text && (
+                <>
+                  <p>{message.text}</p>
+                  <button
+                    onClick={() => handleTranslate(message.text)}
+                    className="translate-btn text-xs bg-opacity-20 bg-white px-2 py-1 rounded hover:bg-opacity-30 transition-all"
+                    disabled={isTranslating}
+                  >
+                    {isTranslating ? 'Translating...' : 'हिंदी में अनुवाद करें'}
+                  </button>
+                  {message.translatedText && (
+                    <p className="translated-text text-sm italic opacity-75">
+                      {message.translatedText}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -89,4 +121,5 @@ const ChatContainer = () => {
     </div>
   );
 };
+
 export default ChatContainer;

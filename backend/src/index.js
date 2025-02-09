@@ -5,15 +5,24 @@ import cors from "cors";
 
 import path from "path";
 
-import { connectDB } from "./lib/db.js";
-
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import translateRouter from "./routes/translate.route.js";
+
+import { connectDB } from "./lib/db.js";
 import { app, server } from "./lib/socket.js";
 
-dotenv.config();
+// dotenv.config();
+dotenv.config({ path: './src/.env' });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000; // Default to 5000 if PORT is not set
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("MongoDB URI is not defined in the .env file.");
+  process.exit(1); // Exit the application if the URI is not set
+}
+
 const __dirname = path.resolve();
 
 app.use(express.json());
@@ -27,6 +36,7 @@ app.use(
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/", translateRouter);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
